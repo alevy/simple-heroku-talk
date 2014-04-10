@@ -6,7 +6,7 @@ all: $(TARGETS)
 	pandoc -s $< -t beamer -o $@
 
 %.html: %.md
-	pandoc -s $< -t dzslides -o $@
+	pandoc -s $< -t slidy -o $@
 
 clean:
 	rm -f $(TARGETS)
