@@ -6,7 +6,44 @@ author:
 date: April 11, 2014 @ Heroku
 ---
 
-# Haskell in a nutshell
+# Agenda
+
+* Why write web applications in Haskell?
+* A brief introduction to Haskell
+* A look under the hood of Simple
+* Walkthrough building a Simple app
+
+# Why write web apps in Haskell?
+
+# Why write (web apps in) Haskell?
+
+  * Expressiveness
+    * Small language core provides a lot of flexibility
+    * Code can be very concise, speeding development
+  * Correctness / safety / security / productivity
+    * Types let you reason about **what** code is doing  
+      even complicated code.
+    * Eliminate whole classes of bugs (anecdotally, >90% of exceptions thrown
+      in YouTube are type errors).
+  * Perfomance
+  * Joy
+
+# A Brief Introduction to Haskell
+
+  * Purely-functional
+    * Expressions vs. Statements
+    * First-class functions
+    * Partial application
+  * Strict type-system
+    * Types known at compile time
+    * Side effects are explicit
+  * Advanced tools
+    * Concurrency + M/N parallelism built in
+    * Testing frameworks
+
+# A Brief Introduction to Haskell - Syntax
+
+
 
 # A Teaser
 
