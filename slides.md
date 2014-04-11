@@ -1,17 +1,51 @@
 ---
-title: "Simple"
+title: Simple
 subtitle: a functional web framework in haskell
 author:
   - amit levy (@aalevy)
 date: April 11, 2014 @ Heroku
+css: style.css
 ---
+
+# A Typical Rails Learning Curve
+
+![not to scale](learning-curve.svg "not to scale")
+
+# What we really want...
+
+## Intuitive API
+  - easy to get started
+  - readable application code
+
+## Easy to understand internals
+  - hackable
+  - coherence between what I write and what gets executed
+
+## Expose functionality to users
+  - let app developer leverage core functionality
+
+# _Simple_ - a "framework-less" web framework 
+
+  * No prescribed app structure enforced
+    * but sane default conventions
+  * Small core
+    * <400 lines of code
+    * can understand most of it in one source file
+  * Non-core broken up into composable components
+    * no special access to core primitives
+    * anyone can build alternative/additional components
+  * Fully-loaded:
+    * Request routing
+    * View templates
+    * Cookie-based sessions
+    * ORM for PostgreSQL
 
 # Agenda
 
-* Why write web applications in Haskell?
-* A brief introduction to Haskell
-* A look under the hood of Simple
-* Walkthrough building a Simple app
+  * Why write web applications in Haskell?
+  * A brief introduction to Haskell
+  * A look under the hood of Simple
+  * Walkthrough building a Simple app
 
 # Why write web apps in Haskell?
 
@@ -19,14 +53,20 @@ date: April 11, 2014 @ Heroku
 
   * Expressiveness
     * Small language core provides a lot of flexibility
-    * Code can be very concise, speeding development
+    * Code can be very concise
   * Correctness / safety / security / productivity
     * Types let you reason about **what** code is doing  
       even complicated code.
-    * Eliminate whole classes of bugs (anecdotally, >90% of exceptions thrown
+    * Eliminates a whole class of bugs (anecdotally, >90% of exceptions thrown
       in YouTube are type errors).
   * Perfomance
-  * Joy
+
+# Throughput (req/sec) compared to Ruby, node.js
+
+![](performance.svg)
+
+_This was done informally on my laptop, but more robust benchmarks have similar
+results_
 
 # A Brief Introduction to Haskell
 
@@ -40,43 +80,13 @@ date: April 11, 2014 @ Heroku
   * Advanced tools
     * Concurrency + M/N parallelism built in
     * Testing frameworks
+    * `cabal` package manager
+    * ...
 
-# A Brief Introduction to Haskell - Primitive Types
-
-  * `Bool`, `Char`, `Int`, `Double`...
-  * *type1* `->` *type2* - a function from *type1* to *type2*. For example:
-
-```haskell
-add :: Int -> Int -> Int
-map :: (a -> b) -> [a] -> [b]
-```
-
-  * `(`*type1*`,` *type2*`,` ...`,` *typeN*`)` - a tuple
-  * `()` - a zero-tuple, pronounced *unit* (kind of like `void` in
-    C); there is only one value of this type, also written `()`
-
-# A Brief Introduction to Haskell - User-defined types
-
-* `data` or `newtype`
+# Hello World
 
 ```haskell
-data Color = Red | Blue | Green ...
-
-data Point = Cartesian Double Double
-           | Polar Double Double
-
-data Maybe a = Just a | Nothing
-data Either a b = Left a | Right b
-
-data ListElm a = ListElm { listElmData :: a, listElmNext :: ListElm } | NullElm
-
-newtype BlogPost = BlogPost { title :: String, body :: String }
-```
-
-* `type` aliases
-
-```haskell
-type Point = (Double, Double)
+main = putStrLn "hello world"
 ```
 
 # Hello World
@@ -94,53 +104,82 @@ main = do
   putStrLn $ "Hello " ++ name ++ "!"
 ```
 
-What are the "types" of these actions?
+> * Each statement in the `do` block returns a value (consumed with `<-`) and
+    can perform a side effect (e.g. print to the screen).
+
+> * The `do` block let's us write statements that have side effects.
+
+> * `main` is the root of all side effects in a program
+
+> * The do block lets us program what side effects can happen
+    * hide state
+    * restrict actions by a security policy
+    * provide transactional memory
+
+# A Brief Introduction to Haskell - Primitive Types
+
+  * `Bool`, `Char`, `Int`, `Double`...
+```haskell
+let amMutable = False
+```
+  * *type1* `->` *type2* - a function from *type1* to *type2*. For example:
+```haskell
+add :: Int -> Int -> Int
+map :: (a -> b) -> [a] -> [b]
+```
+  * `(`*type1*`,` *type2*`,` ...`,` *typeN*`)` - a tuple
+  * `()` - a zero-tuple, pronounced *unit*
+    * kind of like `void` in C
+    * there is only one value of this type, also written `()`
+
+# A Brief Introduction to Haskell - User-defined types
+
+* `data` or `newtype`
 
 ```haskell
-putStrLn :: String -> IO ()
-getLine :: IO String
+data HTMLString = UnescapedHTML String | EscapedHTML String
+
+data Maybe a = Just a | Nothing
+
+data Either a b = Left a | Right b
+
+newtype BlogPost = BlogPost { postTitle :: String, postBody :: String }
 ```
 
-`IO` is a parameterized type (like `Maybe`, `Either`).  
-`IO String` means an IO action that returns a `String` when executed
-
-**Test yourself**: _What is the type of `main`?_
-
-# Hello World
+* `type` aliases
 
 ```haskell
-main = putStrLn "hello world"
+type Point = (Double, Double)
 ```
 
-  * The type of `putStrLn` is `String -> IO ()`  
-    meaning it takes a `String`, does some _action_ in `IO` and returns unit.
-  * What is the type of `main`?
+# Controller code for a Blog
 
 ```haskell
-main :: IO ()
-```
+main = run 3000 $ do
+  settings <- newAppSettings
+  controllerApp settings $ do
+    get "/" $ render "welcome.html" ()
 
-  * `main` is special
+    routeName "/posts" $ do
+      get "/" $ do
+        posts <- findAllPosts
+        render "posts/index.html" posts
 
-# A Teaser
+      get "/:post_id" $ do
+        postId <- queryParam' "post_id"
+        routePost postId $ \post ->
+            render "posts/show.html" post
 
-```haskell
-get "/" $ do
-  posts <- withConnection $ \conn ->
-    liftIO $ findAll conn
-  render "index.html" $
-    object ["posts" .= (posts :: [Post])]
+      get "/:tag" $ do
+        tag <- queryParam' "tag"
+        posts <- findPostsByTag tag
+        render "posts/index.html" posts
 
-get "/:post_id" $ do
-  postId <- queryParam' "post_id"
-  mpost <- withConnection $ \conn ->
-    liftIO $ findRow postId
-  case mpost of
-    Nothing -> respond notFound
-    Just post ->
-      render "show.html" $
-        object ["post" .= post :: Post]
-  render "show.html" post
+routePost :: DBKey -> (Post -> Controller BlogSettings ())
+         -> Controller BlogSettings ()
+routePost postId act = withConnection $ \conn -> do
+  mpost <- liftIO $ findRow conn postId
+  maybe (return ()) act mpost
 ```
 
 # A Web Framework in Four Lines
@@ -150,9 +189,69 @@ type ControllerState s = (Request, s)
 
 newtype Controller s a = Controller {
   runController :: ControllerState s
-    -> IO (Either Response a, ControllerState s)
+                -> IO (Either Response a, ControllerState s)
 }
 ```
+
+> * A function that takes a `Request` and an app specific state
+> * Might generated a response, otherwise returns a value
+> * The `Request` or app state might be modified
+> * `IO` in the return type means we can perform `IO` side-effects
+
+# Some building blocks to make life easier
+
+Given a `Response`, construct a `Controller` action that
+responds with it:
+
+```haskell
+respond :: Response -> Controller s ()
+respond resp = Controller $ \s -> return (Left resp, s)
+```
+
+Given a value (of arbitrary type `a`), return it rather than responding:
+```haskell
+return :: a -> Controller s a
+return val = Controller $ \s -> return (Right val, s)
+```
+
+Get the `Request` value:
+
+```haskell
+request :: Controller s Request
+request = Controller $ \s -> return (Right $ fst s, s)
+```
+
+These are provided by _Simple_ but don't do anything special. Just used
+everywhere.
+
+# Let's write a routing combinator
+
+Remember `routeName` from the example?
+
+```
+...
+routeName "posts" $ do
+  ...
+...
+```
+
+If the first thing in the `Request` path `==` the name, match this route,
+otherwise try the next action:
+
+```haskell
+routeName :: Text -> Controller s () -> Controller s ()
+routeName name (Controller next) = do
+  req <- request
+  if (length $ pathInfo req) > 0 && name == (head $ pathInfo req)
+    then Controller $ \(req, s) -> next (popHdr req, s)
+    else return ()
+  where popHdr req = req { pathInfo = (tail . pathInfo $ req) }
+```
+
+> * Easy to see how to you would write `routeHost`, `routeMethod`,
+  `routeAccept`...
+
+> * All these are provided but you can write your own (e.g. `routePost`).
 
 # Trying to do this procedurally
 
@@ -300,48 +399,4 @@ function myapp(req) {
 * But this is pretty ugly, and not really what we want
 
 * Also pretty sure it's not correct...
-
-# A Web Framework in Four Lines
-
-```haskell
-ControllerState s
-  -> IO (Either Response a, ControllerState s)
-```
-
-A function that takes a Request value and the current app state, and returns
-either:
-
-1. A `Response` value -- meaning we're done
-
-2. A value of type `a` -- this lets us do useful work in addition to just
-  responding to a Request.
-
-# A Web Framework in Four Lines
-
-Let's write a utility functions:
-
-```haskell
-respond :: Response -> Controller s ()
-```
-
-Given a `Response`, construct a `Controller` action that
-responds with it:
-
-```haskell
-respond resp = \s -> return (Left resp, s)
-```
-
-# A Web Framework in Four Lines
-
-Let's write a utility functions:
-
-```haskell
-return :: a -> Controller s a
-```
-
-Given a value (of arbitrary type `a`), _lift_ it into the Controller monad:
-
-```haskell
-return val = \s -> return (Right val, s)
-```
 

@@ -1,0 +1,11 @@
+body {
+  font-family: Merriweather, serif;
+}
+
+h1, h2, h3 {
+  font-family: Cantarell, Open Sans;
+}
+
+.figure {
+  text-align: center;
+}

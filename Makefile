@@ -1,4 +1,4 @@
-TARGETS := slides.pdf slides.html
+TARGETS := slides.html
 
 all: $(TARGETS)
 

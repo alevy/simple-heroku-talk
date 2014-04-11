@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="author" content="amit levy (@aalevy)" />
+  <title>Simple</title>
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="stylesheet" href="reveal.js/css/reveal.min.css"/>
+    <style type="text/css">code{white-space: pre;}</style>
+    <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+    </style>
+    <link rel="stylesheet" href="style.css"/>
+  <link rel="stylesheet" media="print" href="reveal.js/css/print/pdf.css" />
+  <!--[if lt IE 9]>
+  <script src="reveal.js/lib/js/html5shiv.js"></script>
+  <![endif]-->
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+<section>
+    <h1 class="title">Simple</h1>
+  <h1 class="subtitle">a functional web framework in haskell</h1>
+    <h2 class="author">amit levy (<span class="citation" data-cites="aalevy">@aalevy</span>)</h2>
+    <h3 class="date">April 11, 2014 @ Heroku</h3>
+</section>
+
+<section id="a-typical-rails-learning-curve" class="slide level1">
+<h1>A Typical Rails Learning Curve</h1>
+<figure>
+<img src="learning-curve.svg" title="not to scale" alt="not to scale" /><figcaption>not to scale</figcaption>
+</figure>
+</section>
+<section id="what-we-really-want..." class="slide level1">
+<h1>What we really want...</h1>
+<h2 id="intuitive-api">Intuitive API</h2>
+<ul>
+<li>easy to get started</li>
+<li>readable application code</li>
+</ul>
+<h2 id="easy-to-understand-internals">Easy to understand internals</h2>
+<ul>
+<li>hackable</li>
+<li>coherence between what I write and what gets executed</li>
+</ul>
+<h2 id="expose-functionality-to-users">Expose functionality to users</h2>
+<ul>
+<li>let app developer leverage core functionality</li>
+</ul>
+</section>
+<section id="introductin-simple---a-framework-less-web-framework" class="slide level1">
+<h1>Introductin <em>Simple</em> - a &quot;framework-less&quot; web framework</h1>
+<ul>
+<li>No prescribed app structure enforced
+<ul>
+<li>but sane default conventions</li>
+</ul></li>
+<li>Small core
+<ul>
+<li>&lt;400 lines of code</li>
+<li>can understand most of it in one source file</li>
+</ul></li>
+<li>Non-core broken up into composable components
+<ul>
+<li>no special access to core primitives</li>
+<li>anyone can build alternative/additional components</li>
+</ul></li>
+</ul>
+</section>
+<section id="agenda" class="slide level1">
+<h1>Agenda</h1>
+<ul>
+<li>Why write web applications in Haskell?</li>
+<li>A brief introduction to Haskell</li>
+<li>A look under the hood of Simple</li>
+<li>Walkthrough building a Simple app</li>
+</ul>
+</section>
+<section id="why-write-web-apps-in-haskell" class="slide level1">
+<h1>Why write web apps in Haskell?</h1>
+</section>
+<section id="why-write-web-apps-in-haskell-1" class="slide level1">
+<h1>Why write (web apps in) Haskell?</h1>
+<ul>
+<li>Expressiveness
+<ul>
+<li>Small language core provides a lot of flexibility</li>
+<li>Code can be very concise</li>
+</ul></li>
+<li>Correctness / safety / security / productivity
+<ul>
+<li>Types let you reason about <strong>what</strong> code is doing<br /> even complicated code.</li>
+<li>Eliminate whole classes of bugs (anecdotally, &gt;90% of exceptions thrown in YouTube are type errors).</li>
+</ul></li>
+<li>Perfomance</li>
+</ul>
+</section>
+<section id="why-write-web-apps-in-haskell-2" class="slide level1">
+<h1>Why write (web apps in) Haskell?</h1>
+<h2 id="throughput-reqsec-of-compared-to-ruby-node.js">Throughput (req/sec) of compared to Ruby, node.js</h2>
+<figure>
+<img src="performance.svg" />
+</figure>
+<p><em>This was done informally on my laptop, but more robust benchmarks have similar results</em></p>
+</section>
+<section id="a-brief-introduction-to-haskell" class="slide level1">
+<h1>A Brief Introduction to Haskell</h1>
+<ul>
+<li>Purely-functional
+<ul>
+<li>Expressions vs. Statements</li>
+<li>First-class functions</li>
+<li>Partial application</li>
+</ul></li>
+<li>Strict type-system
+<ul>
+<li>Types known at compile time</li>
+<li>Side effects are explicit</li>
+</ul></li>
+<li>Advanced tools
+<ul>
+<li>Concurrency + M/N parallelism built in</li>
+<li>Testing frameworks</li>
+<li>...</li>
+</ul></li>
+</ul>
+</section>
+<section id="a-brief-introduction-to-haskell---primitive-types" class="slide level1">
+<h1>A Brief Introduction to Haskell - Primitive Types</h1>
+<ul>
+<li><code>Bool</code>, <code>Char</code>, <code>Int</code>, <code>Double</code>...</li>
+<li><em>type1</em> <code>-&gt;</code> <em>type2</em> - a function from <em>type1</em> to <em>type2</em>. For example:</li>
+</ul>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">add ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span>
+map<span class="ot"> ::</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [b]</code></pre>
+<ul>
+<li><code>(</code><em>type1</em><code>,</code> <em>type2</em><code>,</code> ...<code>,</code> <em>typeN</em><code>)</code> - a tuple</li>
+<li><code>()</code> - a zero-tuple, pronounced <em>unit</em> (kind of like <code>void</code> in C); there is only one value of this type, also written <code>()</code></li>
+</ul>
+</section>
+<section id="a-brief-introduction-to-haskell---user-defined-types" class="slide level1">
+<h1>A Brief Introduction to Haskell - User-defined types</h1>
+<ul>
+<li><code>data</code> or <code>newtype</code></li>
+</ul>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Color</span> <span class="fu">=</span> <span class="dt">Red</span> <span class="fu">|</span> <span class="dt">Blue</span> <span class="fu">|</span> <span class="dt">Green</span> <span class="fu">...</span>
+
+<span class="kw">data</span> <span class="dt">Point</span> <span class="fu">=</span> <span class="dt">Cartesian</span> <span class="dt">Double</span> <span class="dt">Double</span>
+           <span class="fu">|</span> <span class="dt">Polar</span> <span class="dt">Double</span> <span class="dt">Double</span>
+
+<span class="kw">data</span> <span class="dt">Maybe</span> a <span class="fu">=</span> <span class="dt">Just</span> a <span class="fu">|</span> <span class="dt">Nothing</span>
+<span class="kw">data</span> <span class="dt">Either</span> a b <span class="fu">=</span> <span class="dt">Left</span> a <span class="fu">|</span> <span class="dt">Right</span> b
+
+<span class="kw">data</span> <span class="dt">ListElm</span> a <span class="fu">=</span> <span class="dt">ListElm</span> {<span class="ot"> listElmData ::</span> a,<span class="ot"> listElmNext ::</span> <span class="dt">ListElm</span> } <span class="fu">|</span> <span class="dt">NullElm</span>
+
+<span class="kw">newtype</span> <span class="dt">BlogPost</span> <span class="fu">=</span> <span class="dt">BlogPost</span> {<span class="ot"> title ::</span> <span class="dt">String</span>,<span class="ot"> body ::</span> <span class="dt">String</span> }</code></pre>
+<ul>
+<li><code>type</code> aliases</li>
+</ul>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">Point</span> <span class="fu">=</span> (<span class="dt">Double</span>, <span class="dt">Double</span>)</code></pre>
+</section>
+<section id="hello-world" class="slide level1">
+<h1>Hello World</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">main <span class="fu">=</span> putStrLn <span class="st">&quot;hello world&quot;</span></code></pre>
+<p>Let's get a bit fancier:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">main <span class="fu">=</span> <span class="kw">do</span>
+  putStr <span class="st">&quot;What&#39;s your name? &quot;</span>
+  name <span class="ot">&lt;-</span> getLine
+  putStrLn <span class="fu">$</span> <span class="st">&quot;Hello &quot;</span> <span class="fu">++</span> name <span class="fu">++</span> <span class="st">&quot;!&quot;</span></code></pre>
+<p>What are the &quot;types&quot; of these actions?</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">putStrLn<span class="ot"> ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+getLine<span class="ot"> ::</span> <span class="dt">IO</span> <span class="dt">String</span></code></pre>
+<p><code>IO</code> is a parameterized type (like <code>Maybe</code>, <code>Either</code>).<br /><code>IO String</code> means an IO action that returns a <code>String</code> when executed</p>
+<p><strong>Test yourself</strong>: <em>What is the type of <code>main</code>?</em></p>
+</section>
+<section id="hello-world-1" class="slide level1">
+<h1>Hello World</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">main <span class="fu">=</span> putStrLn <span class="st">&quot;hello world&quot;</span></code></pre>
+<ul>
+<li>The type of <code>putStrLn</code> is <code>String -&gt; IO ()</code><br /> meaning it takes a <code>String</code>, does some <em>action</em> in <code>IO</code> and returns unit.</li>
+<li>What is the type of <code>main</code>?</li>
+</ul>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">main ::</span> <span class="dt">IO</span> ()</code></pre>
+<ul>
+<li><code>main</code> is special</li>
+</ul>
+</section>
+<section id="a-teaser" class="slide level1">
+<h1>A Teaser</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">get <span class="st">&quot;/&quot;</span> <span class="fu">$</span> <span class="kw">do</span>
+  posts <span class="ot">&lt;-</span> withConnection <span class="fu">$</span> \conn <span class="ot">-&gt;</span>
+    liftIO <span class="fu">$</span> findAll conn
+  render <span class="st">&quot;index.html&quot;</span> <span class="fu">$</span>
+    object [<span class="st">&quot;posts&quot;</span> <span class="fu">.=</span> (<span class="ot">posts ::</span> [<span class="dt">Post</span>])]
+
+get <span class="st">&quot;/:post_id&quot;</span> <span class="fu">$</span> <span class="kw">do</span>
+  postId <span class="ot">&lt;-</span> queryParam&#39; <span class="st">&quot;post_id&quot;</span>
+  mpost <span class="ot">&lt;-</span> withConnection <span class="fu">$</span> \conn <span class="ot">-&gt;</span>
+    liftIO <span class="fu">$</span> findRow postId
+  <span class="kw">case</span> mpost <span class="kw">of</span>
+    <span class="dt">Nothing</span> <span class="ot">-&gt;</span> respond notFound
+    <span class="dt">Just</span> post <span class="ot">-&gt;</span>
+      render <span class="st">&quot;show.html&quot;</span> <span class="fu">$</span>
+        object [<span class="st">&quot;post&quot;</span> <span class="fu">.=</span><span class="ot"> post ::</span> <span class="dt">Post</span>]
+  render <span class="st">&quot;show.html&quot;</span> post</code></pre>
+</section>
+<section id="a-web-framework-in-four-lines" class="slide level1">
+<h1>A Web Framework in Four Lines</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">ControllerState</span> s <span class="fu">=</span> (<span class="dt">Request</span>, s)
+
+<span class="kw">newtype</span> <span class="dt">Controller</span> s a <span class="fu">=</span> <span class="dt">Controller</span> {
+<span class="ot">  runController ::</span> <span class="dt">ControllerState</span> s
+    <span class="ot">-&gt;</span> <span class="dt">IO</span> (<span class="dt">Either</span> <span class="dt">Response</span> a, <span class="dt">ControllerState</span> s)
+}</code></pre>
+</section>
+<section id="trying-to-do-this-procedurally" class="slide level1">
+<h1>Trying to do this procedurally</h1>
+<pre class="sourceCode ruby"><code class="sourceCode ruby"><span class="kw">def</span> posts_controller(req)
+  <span class="kw">if</span> req[<span class="st">&quot;PATH_INFO&quot;</span>].empty?
+    <span class="kw">return</span> [<span class="dv">200</span>, [], <span class="dt">Post</span>.all.to_json]
+  <span class="kw">end</span>
+
+  post_id = req[<span class="st">&quot;PATH_INFO&quot;</span>].first
+  <span class="kw">return</span> [<span class="dv">200</span>, [], <span class="dt">Post</span>.find(post_id)]
+<span class="kw">end</span>
+
+<span class="kw">def</span> myapp(req)
+  <span class="kw">if</span> req[<span class="st">&quot;PATH_INFO&quot;</span>].first == <span class="st">&quot;posts&quot;</span>
+    req[<span class="st">&quot;PATH_INFO&quot;</span>].shift
+    <span class="kw">if</span> resp = posts_controller(req)
+      <span class="kw">return</span> resp
+    <span class="kw">end</span>
+    req[<span class="st">&quot;PATH_INFO&quot;</span>].unshift(<span class="st">&quot;posts&quot;</span>)
+  <span class="kw">end</span>
+
+  <span class="kw">if</span> req[<span class="st">&quot;PATH_INFO&quot;</span>].first == <span class="st">&quot;users&quot;</span>
+    req[<span class="st">&quot;PATH_INFO&quot;</span>].shift
+    <span class="kw">if</span> resp = users_controller(req)
+      <span class="kw">return</span> resp
+    <span class="kw">end</span>
+    req[<span class="st">&quot;PATH_INFO&quot;</span>].unshift(<span class="st">&quot;users&quot;</span>)
+  <span class="kw">end</span>
+
+  <span class="kw">if</span> resp = posts_controller(req)
+    <span class="kw">return</span> resp
+  <span class="kw">end</span>
+  <span class="kw">return</span> [<span class="dv">404</span>, [[<span class="st">&quot;Content-Length&quot;</span>, <span class="dv">0</span>]], <span class="st">&quot;&quot;</span>]
+<span class="kw">end</span></code></pre>
+</section>
+<section id="trying-to-do-this-procedurally---ok-we-need-helpers" class="slide level1">
+<h1>Trying to do this procedurally - OK, we need helpers</h1>
+<p><code>route_name</code> will call pass control to a block if it matches the first path directory:</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby"><span class="kw">def</span> route_name(req, path_name, &amp;sub_route)
+  pn = req[<span class="st">&quot;PATH_INFO&quot;</span>].shift
+  <span class="kw">if</span> pn == path_name
+    <span class="kw">if</span> resp = sub_route.call(req)
+      <span class="kw">return</span> resp
+    <span class="kw">end</span>
+  <span class="kw">end</span>
+  req[<span class="st">&quot;PATH_INFO&quot;</span>].unshift(pn)
+  <span class="kw">return</span> <span class="dv">nil</span>
+<span class="kw">end</span></code></pre>
+<p>which let's us write:</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby"><span class="kw">def</span> myapp(req)
+  resp = route_name(<span class="st">&quot;posts&quot;</span>) <span class="kw">do</span> |req|
+    resp = route_top {|_req| <span class="kw">return</span> [<span class="dv">200</span>, [], <span class="dt">Post</span>.all.to_json]}
+    <span class="kw">return</span> resp || [<span class="dv">200</span>, [], <span class="dt">Post</span>.find(req[<span class="st">&quot;POST_INFO&quot;</span>].first)]
+  <span class="kw">end</span>
+  <span class="kw">return</span> resp <span class="kw">if</span> resp
+
+  resp = route_name(<span class="st">&quot;users&quot;</span>) <span class="kw">do</span> |req|
+    ...
+  <span class="kw">end</span>
+  <span class="kw">return</span> resp
+<span class="kw">end</span></code></pre>
+<p>better, but we still have to check the return value everywhere...</p>
+<p>can you imagine writing actual code like this?</p>
+</section>
+<section id="continuation-passing-style-cps-in-javascript" class="slide level1">
+<h1>Continuation-passing-style (CPS) in JavaScript</h1>
+<p>You're already familiar with CPS if you've written in Node.js:</p>
+<pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">function</span> <span class="fu">route_name</span>(req, name, match_callback, fallback) {
+  <span class="kw">if</span> (<span class="ot">req</span>.<span class="fu">path_info</span>[<span class="dv">0</span>] == name) {
+    <span class="ot">req</span>.<span class="ot">path_info</span>.<span class="fu">shift</span>();
+    <span class="kw">return</span> <span class="fu">match_callback</span>(req, <span class="kw">function</span>() {
+      <span class="ot">req</span>.<span class="ot">path_info</span>.<span class="fu">unshift</span>(name);
+      <span class="kw">return</span> <span class="fu">fallback</span>(req);
+    });
+  } <span class="kw">else</span> {
+    <span class="kw">return</span> <span class="fu">fallback</span>(req);
+  }
+}</code></pre>
+</section>
+<section id="cps-in-javascript" class="slide level1">
+<h1>CPS in JavaScript</h1>
+<p>So then we get to write:</p>
+<pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">function</span> <span class="fu">myapp</span>(req) {
+  <span class="kw">return</span> <span class="fu">route_name</span>(<span class="st">&quot;posts&quot;</span>,
+    <span class="kw">function</span>(req, fallback) {
+      <span class="kw">return</span> <span class="fu">route_top</span>(<span class="kw">function</span>() {
+        <span class="kw">return</span> [<span class="dv">200</span>, [], <span class="fu">get_all_posts</span>()];
+      }, <span class="kw">function</span>(req) {
+        <span class="kw">return</span> [<span class="dv">200</span>, [], <span class="fu">get_post</span>(<span class="ot">req</span>.<span class="fu">path</span>[<span class="dv">0</span>])];
+      });
+    },
+    <span class="kw">function</span>(req) {
+      <span class="kw">return</span> <span class="fu">route_name</span>(<span class="st">&quot;users&quot;</span>,
+        <span class="kw">function</span>(req) {
+          ...
+        },
+        <span class="kw">function</span>(req) {
+          ...
+        });
+    });
+}</code></pre>
+</section>
+<section id="cps-in-javascript-1" class="slide level1">
+<h1>CPS in JavaScript</h1>
+<p>OK, and we can even refactor a bit:</p>
+<pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">function</span> <span class="fu">postsController</span>(req) {
+  <span class="kw">return</span> <span class="fu">route_top</span>(<span class="kw">function</span>() {
+    <span class="kw">return</span> [<span class="dv">200</span>, [], <span class="fu">get_all_posts</span>()];
+  }, <span class="kw">function</span>(req) {
+    <span class="kw">return</span> [<span class="dv">200</span>, [], <span class="fu">get_post</span>(<span class="ot">req</span>.<span class="fu">path</span>[<span class="dv">0</span>])];
+  });
+}
+
+<span class="kw">function</span> <span class="fu">usersController</span>(req, fallback) { ... }
+
+<span class="kw">function</span> <span class="fu">myapp</span>(req) {
+  <span class="kw">return</span> <span class="fu">route_name</span>(<span class="st">&quot;posts&quot;</span>, postsController,
+    <span class="kw">function</span>(req) {
+      <span class="kw">return</span> <span class="fu">route_name</span>(<span class="st">&quot;users&quot;</span>, usersController
+          postsController);
+    });
+}</code></pre>
+<ul>
+<li><p>But this is pretty ugly, and not really what we want</p></li>
+<li><p>Also pretty sure it's not correct...</p></li>
+</ul>
+</section>
+<section id="a-web-framework-in-four-lines-1" class="slide level1">
+<h1>A Web Framework in Four Lines</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="dt">ControllerState</span> s
+  <span class="ot">-&gt;</span> <span class="dt">IO</span> (<span class="dt">Either</span> <span class="dt">Response</span> a, <span class="dt">ControllerState</span> s)</code></pre>
+<p>A function that takes a Request value and the current app state, and returns either:</p>
+<ol type="1">
+<li><p>A <code>Response</code> value -- meaning we're done</p></li>
+<li><p>A value of type <code>a</code> -- this lets us do useful work in addition to just responding to a Request.</p></li>
+</ol>
+</section>
+<section id="a-web-framework-in-four-lines-2" class="slide level1">
+<h1>A Web Framework in Four Lines</h1>
+<p>Let's write a utility functions:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">respond ::</span> <span class="dt">Response</span> <span class="ot">-&gt;</span> <span class="dt">Controller</span> s ()</code></pre>
+<p>Given a <code>Response</code>, construct a <code>Controller</code> action that responds with it:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">respond resp <span class="fu">=</span> \s <span class="ot">-&gt;</span> return (<span class="dt">Left</span> resp, s)</code></pre>
+</section>
+<section id="a-web-framework-in-four-lines-3" class="slide level1">
+<h1>A Web Framework in Four Lines</h1>
+<p>Let's write a utility functions:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">return<span class="ot"> ::</span> a <span class="ot">-&gt;</span> <span class="dt">Controller</span> s a</code></pre>
+<p>Given a value (of arbitrary type <code>a</code>), <em>lift</em> it into the Controller monad:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">return val <span class="fu">=</span> \s <span class="ot">-&gt;</span> return (<span class="dt">Right</span> val, s)</code></pre>
+</section>
+    </div>
+  </div>
+
+  <script src="reveal.js/lib/js/head.min.js"></script>
+  <script src="reveal.js/js/reveal.min.js"></script>
+
+  <script>
+
+      // Full list of configuration options available here:
+      // https://github.com/hakimel/reveal.js#configuration
+      Reveal.initialize({
+        controls: true,
+        progress: true,
+        history: true,
+        center: true,
+        theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
+        transition: Reveal.getQueryHash().transition || 'default', // default/cube/page/concave/zoom/linear/fade/none
+
+        // Optional libraries used to extend on reveal.js
+        dependencies: [
+          { src: 'reveal.js/lib/js/classList.js', condition: function() { return !document.body.classList; } },
+          { src: 'reveal.js/plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
+          { src: 'reveal.js/plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } },
+//          { src: 'reveal.js/plugin/search/search.js', async: true, condition: function() { return !!document.body.classList; }, }
+//          { src: 'reveal.js/plugin/remotes/remotes.js', async: true, condition: function() { return !!document.body.classList; } }
+]});
+    </script>
+  </body>
+</html>
