@@ -7,22 +7,34 @@ date: April 11, 2014 @ Heroku
 css: style.css
 ---
 
+# `$ whoami`
+
+![Grad student at Stanford](scs.png)
+![Work on MemCachier](memcachier.png)
+
+* Graduate student in the Secure Computer Systems lab at Stanford
+* Work on MemCachier
+
 # A Typical Rails Learning Curve
 
-![not to scale](learning-curve.svg "not to scale")
+![](learning-curve.svg "not to scale")
 
 # What we really want...
 
-## Intuitive API
-  - easy to get started
-  - readable application code
+![](what-we-want.svg "not to scale")
 
-## Easy to understand internals
-  - hackable
-  - coherence between what I write and what gets executed
+# What we really want...
 
-## Expose functionality to users
-  - let app developer leverage core functionality
+  * Intuitive API
+    - easy to get started
+    - readable application code
+
+  * Easy to understand internals
+    - hackable
+    - coherence between what I write and what gets executed
+
+  * Expose functionality to users
+    - let app developer leverage core functionality
 
 # _Simple_ - a "framework-less" web framework 
 
@@ -143,7 +155,9 @@ data Maybe a = Just a | Nothing
 
 data Either a b = Left a | Right b
 
-newtype BlogPost = BlogPost { postTitle :: String, postBody :: String }
+data BlogPost = BlogPost { postTitle :: String, postBody :: String }
+
+newtype Password = Password { passwordDigest :: String }
 ```
 
 * `type` aliases
@@ -166,7 +180,7 @@ main = run 3000 $ do
         render "posts/index.html" posts
 
       get "/:post_id" $ do
-        postId <- queryParam' "post_id"
+        postId <- readQueryParam' "post_id"
         routePost postId $ \post ->
             render "posts/show.html" post
 
@@ -175,7 +189,7 @@ main = run 3000 $ do
         posts <- findPostsByTag tag
         render "posts/index.html" posts
 
-routePost :: DBKey -> (Post -> Controller BlogSettings ())
+routePost :: DBRef Post -> (Post -> Controller BlogSettings ())
          -> Controller BlogSettings ()
 routePost postId act = withConnection $ \conn -> do
   mpost <- liftIO $ findRow conn postId
@@ -253,150 +267,20 @@ routeName name (Controller next) = do
 
 > * All these are provided but you can write your own (e.g. `routePost`).
 
-# Trying to do this procedurally
+# OK, enough chatter
 
-```ruby
-def posts_controller(req)
-  if req["PATH_INFO"].empty?
-    return [200, [], Post.all.to_json]
-  end
+Let's write a blog...
 
-  post_id = req["PATH_INFO"].first
-  return [200, [], Post.find(post_id)]
-end
+# Thanks!
 
-def myapp(req)
-  if req["PATH_INFO"].first == "posts"
-    req["PATH_INFO"].shift
-    if resp = posts_controller(req)
-      return resp
-    end
-    req["PATH_INFO"].unshift("posts")
-  end
-
-  if req["PATH_INFO"].first == "users"
-    req["PATH_INFO"].shift
-    if resp = users_controller(req)
-      return resp
-    end
-    req["PATH_INFO"].unshift("users")
-  end
-
-  if resp = posts_controller(req)
-    return resp
-  end
-  return [404, [["Content-Length", 0]], ""]
-end
+```bash
+$ cabal install simple
+$ smpl create test_app
+$ cd test_app
+$ cabal install --only-dependencies
+$ cabal run
 ```
 
-# Trying to do this procedurally - OK, we need helpers
-
-`route_name` will call pass control to a block if it matches the first path
-directory:
-
-```ruby
-def route_name(req, path_name, &sub_route)
-  pn = req["PATH_INFO"].shift
-  if pn == path_name
-    if resp = sub_route.call(req)
-      return resp
-    end
-  end
-  req["PATH_INFO"].unshift(pn)
-  return nil
-end
-```
-
-which let's us write:
-
-```ruby
-def myapp(req)
-  resp = route_name("posts") do |req|
-    resp = route_top {|_req| return [200, [], Post.all.to_json]}
-    return resp || [200, [], Post.find(req["POST_INFO"].first)]
-  end
-  return resp if resp
-
-  resp = route_name("users") do |req|
-    ...
-  end
-  return resp
-end
-```
-
-better, but we still have to check the return value everywhere...
-
-can you imagine writing actual code like this?
-
-# Continuation-passing-style (CPS) in JavaScript
-
-You're already familiar with CPS if you've written in Node.js:
-
-```javascript
-function route_name(req, name, match_callback, fallback) {
-  if (req.path_info[0] == name) {
-    req.path_info.shift();
-    return match_callback(req, function() {
-      req.path_info.unshift(name);
-      return fallback(req);
-    });
-  } else {
-    return fallback(req);
-  }
-}
-```
-
-# CPS in JavaScript
-
-So then we get to write:
-
-```javascript
-function myapp(req) {
-  return route_name("posts",
-    function(req, fallback) {
-      return route_top(function() {
-        return [200, [], get_all_posts()];
-      }, function(req) {
-        return [200, [], get_post(req.path[0])];
-      });
-    },
-    function(req) {
-      return route_name("users",
-        function(req) {
-          ...
-        },
-        function(req) {
-          ...
-        });
-    });
-}
-```
-
-# CPS in JavaScript
-
-OK, and we can even refactor a bit:
-
-```javascript
-function postsController(req) {
-  return route_top(function() {
-    return [200, [], get_all_posts()];
-  }, function(req) {
-    return [200, [], get_post(req.path[0])];
-  });
-}
-
-function usersController(req, fallback) { ... }
-
-function myapp(req) {
-  return route_name("posts", postsController,
-    function(req) {
-      return route_name("users", usersController
-          postsController);
-    });
-}
-```
-
-* But this is pretty ugly, and not really what we want
-
-* Also pretty sure it's not correct...
-
+* [http://simple.cx](http://simple.cx)
+* [https://github.com/alevy/simple](https://github.com/alevy/simple)
+* [http://hackage.haskell.org/package/simple](http://hackage.haskell.org/package/simple)

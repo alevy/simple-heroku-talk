@@ -1,4 +1,4 @@
-TARGETS := slides.html
+TARGETS := slides.html overflow.html
 
 all: $(TARGETS)
 
