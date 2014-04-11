@@ -41,9 +41,86 @@ date: April 11, 2014 @ Heroku
     * Concurrency + M/N parallelism built in
     * Testing frameworks
 
-# A Brief Introduction to Haskell - Syntax
+# A Brief Introduction to Haskell - Primitive Types
 
+  * `Bool`, `Char`, `Int`, `Double`...
+  * *type1* `->` *type2* - a function from *type1* to *type2*. For example:
 
+```haskell
+add :: Int -> Int -> Int
+map :: (a -> b) -> [a] -> [b]
+```
+
+  * `(`*type1*`,` *type2*`,` ...`,` *typeN*`)` - a tuple
+  * `()` - a zero-tuple, pronounced *unit* (kind of like `void` in
+    C); there is only one value of this type, also written `()`
+
+# A Brief Introduction to Haskell - User-defined types
+
+* `data` or `newtype`
+
+```haskell
+data Color = Red | Blue | Green ...
+
+data Point = Cartesian Double Double
+           | Polar Double Double
+
+data Maybe a = Just a | Nothing
+data Either a b = Left a | Right b
+
+data ListElm a = ListElm { listElmData :: a, listElmNext :: ListElm } | NullElm
+
+newtype BlogPost = BlogPost { title :: String, body :: String }
+```
+
+* `type` aliases
+
+```haskell
+type Point = (Double, Double)
+```
+
+# Hello World
+
+```haskell
+main = putStrLn "hello world"
+```
+
+Let's get a bit fancier:
+
+```haskell
+main = do
+  putStr "What's your name? "
+  name <- getLine
+  putStrLn $ "Hello " ++ name ++ "!"
+```
+
+What are the "types" of these actions?
+
+```haskell
+putStrLn :: String -> IO ()
+getLine :: IO String
+```
+
+`IO` is a parameterized type (like `Maybe`, `Either`).  
+`IO String` means an IO action that returns a `String` when executed
+
+**Test yourself**: _What is the type of `main`?_
+
+# Hello World
+
+```haskell
+main = putStrLn "hello world"
+```
+
+  * The type of `putStrLn` is `String -> IO ()`  
+    meaning it takes a `String`, does some _action_ in `IO` and returns unit.
+  * What is the type of `main`?
+
+```haskell
+main :: IO ()
+```
+
+  * `main` is special
 
 # A Teaser
 
@@ -71,7 +148,7 @@ get "/:post_id" $ do
 ```haskell
 type ControllerState s = (Request, s)
 
-newtype Controller s a = {
+newtype Controller s a = Controller {
   runController :: ControllerState s
     -> IO (Either Response a, ControllerState s)
 }
